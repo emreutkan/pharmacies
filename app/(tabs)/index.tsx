@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Alert, ScrollView, ActivityIndicator, TouchableOpacity, Linking, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { LocationService } from '../../services/LocationService';
-import { AddressInput } from '../../components/AddressInput';
-import { PharmacyService, Pharmacy } from '../../services/PharmacyService';
+import * as Location from 'expo-location';
+import { LocationService } from '@/services/LocationService';
+import { AddressInput } from '@/components/AddressInput';
+import { AddressBar } from '@/components/AddressBar';
+import { PharmacyService, Pharmacy } from '@/services/PharmacyService';
 
 type LocationState = {
   latitude: number;
@@ -22,10 +24,21 @@ export default function HomeScreen() {
 
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [userAddress, setUserAddress] = useState<string | null>(null);
+  const [showAddressInput, setShowAddressInput] = useState(false);
 
   useEffect(() => {
     checkLocationPermission();
+    loadSavedAddress();
   }, []);
+
+  // Load saved address from storage
+  const loadSavedAddress = async () => {
+    const address = await LocationService.getUserAddress();
+    if (address) {
+      setUserAddress(address);
+    }
+  };
 
   // Check if location permissions are granted
   const checkLocationPermission = async () => {
@@ -49,6 +62,7 @@ export default function HomeScreen() {
         } else {
           // No saved coordinates, user will need to input address
           setLocation(prev => ({ ...prev, isLoading: false }));
+          setShowAddressInput(true);
         }
       }
     } catch (error) {
@@ -76,6 +90,7 @@ export default function HomeScreen() {
           permissionGranted: false,
           isLoading: false
         }));
+        setShowAddressInput(true);
       }
     } catch (error) {
       console.error('Error requesting permission:', error);
@@ -94,6 +109,32 @@ export default function HomeScreen() {
         isLoading: false,
       });
 
+      // Try to get address from coordinates via reverse geocoding
+      try {
+        const addressResult = await Location.reverseGeocodeAsync({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
+
+        if (addressResult && addressResult.length > 0) {
+          const addressInfo = addressResult[0];
+          const formattedAddress = [
+            addressInfo.street,
+            addressInfo.district,
+            addressInfo.city
+          ]
+            .filter(Boolean)
+            .join(', ');
+
+          if (formattedAddress) {
+            setUserAddress(formattedAddress);
+            await LocationService.saveUserAddress(formattedAddress);
+          }
+        }
+      } catch (error) {
+        console.error('Reverse geocoding error:', error);
+      }
+
       // Find pharmacies using the user's location
       findPharmacies(coords);
     } catch (error) {
@@ -104,19 +145,27 @@ export default function HomeScreen() {
         'Unable to get your location. Please try again or enter your address manually.',
         [{ text: 'OK' }]
       );
+      setShowAddressInput(true);
     }
   };
 
   // Handle address saved from AddressInput component
-  const handleAddressSaved = (coords: { latitude: number; longitude: number }) => {
+  const handleAddressSaved = (coords: { latitude: number; longitude: number }, address: string) => {
     setLocation({
       ...coords,
       permissionGranted: false,
       isLoading: false,
     });
+    setUserAddress(address);
+    setShowAddressInput(false);
 
     // Find pharmacies using the provided address coordinates
     findPharmacies(coords);
+  };
+
+  // Handle change address request from the address bar
+  const handleChangeAddress = () => {
+    setShowAddressInput(true);
   };
 
   // Find pharmacies using the local data
@@ -224,7 +273,19 @@ export default function HomeScreen() {
         <Text style={styles.subtitle}>Izmir, Turkey</Text>
       </View>
 
-      {!location.permissionGranted && (
+      {userAddress && location.latitude !== 0 && location.longitude !== 0 && (
+        <AddressBar
+          address={userAddress}
+          province="Izmir"
+          coordinates={{
+            latitude: location.latitude,
+            longitude: location.longitude,
+          }}
+          onChangeAddressPress={handleChangeAddress}
+        />
+      )}
+
+      {(!location.permissionGranted || showAddressInput) && (
         <View style={styles.permissionContainer}>
           <Text style={styles.permissionText}>
             We need your location to find pharmacies near you.
@@ -241,7 +302,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {!location.permissionGranted && (
+      {(!location.permissionGranted || showAddressInput) && (
         <AddressInput onAddressSaved={handleAddressSaved} />
       )}
 
