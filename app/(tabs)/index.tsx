@@ -8,6 +8,7 @@ import { PharmacyService, Pharmacy } from '@/services/PharmacyService';
 import MapView, { Marker, Callout, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { fetchPharmacies } from '@/store/slices/pharmacySlice';
+import { loadAddressData } from '@/store/slices/localStorageSlice';
 
 type LocationState = {
   latitude: number;
@@ -36,6 +37,7 @@ export default function HomeScreen() {
 
   const dispatch = useAppDispatch();
   const { loading, initialized } = useAppSelector(state => state.pharmacy);
+  const { userAddress: reduxUserAddress, userCoordinates } = useAppSelector(state => state.localStorage);
 
   // Function to handle address selection from AddressBar
   const handleAddressConfirmedFromBar = async (address: string, coords: { latitude: number; longitude: number }) => {
@@ -53,7 +55,16 @@ export default function HomeScreen() {
   useEffect(() => {
     checkLocationPermission();
     loadSavedAddress();
-  }, []);
+    // Load address data into Redux store
+    dispatch(loadAddressData());
+  }, [dispatch]);
+
+  // Update local state when Redux state changes (if needed)
+  useEffect(() => {
+    if (reduxUserAddress && !location.isLoading) {
+      setUserAddress(reduxUserAddress);
+    }
+  }, [reduxUserAddress]);
 
   // Load saved address from storage
   const loadSavedAddress = async () => {

@@ -20,26 +20,27 @@ import { LocationService } from '@/services/LocationService';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { createThemedStyles } from '@/theme/themeUtils';
 import { searchLocations } from '@/data/turkishLocations';
+import { useAppDispatch } from '@/store';
+import { updateAddress, updateCoordinates } from '@/store/slices/localStorageSlice';
 
 interface AddressBarProps {
   address: string;
-  province?: string;
   coordinates: {
     latitude: number;
     longitude: number;
   } | null;
-  onChangeAddressPress?: () => void; // Made optional
+  onChangeAddressPress?: () => void;
   onAddressSelected: (address: string, coordinates: { latitude: number; longitude: number }) => void;
 }
 
 export const AddressBar: React.FC<AddressBarProps> = ({
   address,
-  province = 'Izmir',
   coordinates,
   onChangeAddressPress,
   onAddressSelected
 }) => {
   const { theme } = useAppTheme();
+  const dispatch = useAppDispatch();
   const styles = getStyles(theme);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -53,10 +54,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   const [selectedAddress, setSelectedAddress] = useState(address);
   const [isLoading, setIsLoading] = useState(false);
   const [locationDetails, setLocationDetails] = useState<{
-    street?: string;
     district?: string;
     city?: string;
-    country?: string;
   }>({});
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -141,7 +140,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
   const handleAddressPress = () => {
     setModalVisible(true);
-    // If onChangeAddressPress is provided, call it
     if (onChangeAddressPress) {
       onChangeAddressPress();
     }
@@ -181,17 +179,17 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
         if (result && result.length > 0) {
           const location = result[0];
-          const formattedAddress = [
-            location.street,
-            location.district,
-            location.city
-          ].filter(Boolean).join(', ');
+          const region = location.city || location.region || 'Unknown';
+          const district = location.district || '';
+          const formattedAddress = district ? `${region}, ${district}` : region;
 
           setSelectedAddress(formattedAddress);
 
-          // Save both the address and coordinates to localStorage
-          await LocationService.saveUserAddress(formattedAddress);
           await LocationService.saveCoordinates(selectedCoordinates);
+          await LocationService.saveUserAddress(region, district);
+
+          dispatch(updateAddress(formattedAddress));
+          dispatch(updateCoordinates(selectedCoordinates));
 
           onAddressSelected(formattedAddress, selectedCoordinates);
         }
@@ -228,10 +226,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       if (result && result.length > 0) {
         const location = result[0];
         setLocationDetails({
-          street: location.street,
           district: location.district,
-          city: location.city,
-          country: location.country
+          city: location.city
         });
 
         Animated.timing(locationDetailsAnimation, {
@@ -308,14 +304,13 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
     setSelectedCoordinates(item.coordinates);
 
-    const locationName = item.district
-      ? `${item.district}, ${item.city}`
-      : item.city;
+    const region = item.city || 'Unknown';
+    const district = item.district || '';
+    const locationName = district ? `${region}, ${district}` : region;
 
     setLocationDetails({
       district: item.district,
-      city: item.city,
-      country: 'Türkiye'
+      city: item.city
     });
 
     Animated.timing(locationDetailsAnimation, {
@@ -363,7 +358,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           <Text style={styles.addressText} numberOfLines={1}>
             {address}
           </Text>
-          <Text style={styles.provinceText}>{province}</Text>
         </View>
         <MaterialIcons name="keyboard-arrow-right" size={24} color={theme.colors.text.tertiary} />
       </TouchableOpacity>
@@ -436,7 +430,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                       <MaterialIcons name="location-on" size={20} color={theme.colors.primary} />
                       <View style={styles.searchResultTextContainer}>
                         <Text style={styles.searchResultText}>
-                          {item.district ? `${item.district}, ${item.city}` : item.city}
+                          {item.district ? `${item.city}, ${item.district}` : item.city}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -471,11 +465,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 { transform: [{ translateY: locationDetailsAnimation }] }
               ]}
             >
-              {locationDetails.street && (
-                <Text style={styles.locationStreet}>{locationDetails.street}</Text>
-              )}
               <Text style={styles.locationRegion}>
-                {[locationDetails.district, locationDetails.city, locationDetails.country]
+                {[locationDetails.city, locationDetails.district]
                   .filter(Boolean)
                   .join(', ')}
               </Text>
@@ -543,10 +534,6 @@ const getStyles = createThemedStyles((theme) => ({
   addressText: {
     ...theme.typography.body,
     color: theme.colors.text.primary,
-  },
-  provinceText: {
-    ...theme.typography.caption,
-    color: theme.colors.text.secondary,
   },
   fullScreenContainer: {
     flex: 1,
@@ -673,12 +660,6 @@ const getStyles = createThemedStyles((theme) => ({
     elevation: 5,
     alignItems: 'center',
     zIndex: 3,
-  },
-  locationStreet: {
-    ...theme.typography.subtitle,
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.xs,
-    textAlign: 'center',
   },
   locationRegion: {
     ...theme.typography.bodySmall,

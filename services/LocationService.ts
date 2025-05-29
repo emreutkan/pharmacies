@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 // Keys for secure storage
 const STORAGE_KEYS = {
-  USER_ADDRESS: 'user_address',
+  USER_ADDRESS: 'user_address', // Will store "Region, District" format only
   USER_COORDS: 'user_coords'
 };
 
@@ -21,7 +21,7 @@ export const LocationService = {
     return status === 'granted';
   },
 
-  // Get the user's current location
+  // Get the user's current location and save coordinates
   getCurrentLocation: async () => {
     try {
       const { coords } = await Location.getCurrentPositionAsync({
@@ -47,10 +47,35 @@ export const LocationService = {
     }
   },
 
-  // Save user address to secure storage
-  saveUserAddress: async (address: string) => {
+  // Format address to "Region, District" format and save it
+  formatAndSaveAddress: async (location: Location.LocationGeocodedAddress): Promise<string> => {
+    // Extract region (city) and district
+    const region = location.city || location.region || '';
+    const district = location.district || '';
+
+    // Format as "Region, District"
+    let formattedAddress = '';
+
+    if (region && district) {
+      formattedAddress = `${region}, ${district}`;
+    } else if (region) {
+      formattedAddress = region;
+    } else if (district) {
+      formattedAddress = district;
+    } else {
+      formattedAddress = 'Unknown Location';
+    }
+
+    // Save formatted address
+    await SecureStore.setItemAsync(STORAGE_KEYS.USER_ADDRESS, formattedAddress);
+    return formattedAddress;
+  },
+
+  // Save user address in "Region, District" format
+  saveUserAddress: async (region: string, district: string = '') => {
     try {
-      await SecureStore.setItemAsync(STORAGE_KEYS.USER_ADDRESS, address);
+      let formattedAddress = district ? `${region}, ${district}` : region;
+      await SecureStore.setItemAsync(STORAGE_KEYS.USER_ADDRESS, formattedAddress);
       return true;
     } catch (error) {
       console.error('Error saving address:', error);
@@ -96,27 +121,19 @@ export const LocationService = {
     }
   },
 
-  // Geocode an address to get coordinates
-  geocodeAddress: async (address: string) => {
+  // Get address details from coordinates
+  getAddressFromCoordinates: async (coords: { latitude: number; longitude: number }) => {
     try {
-      const results = await Location.geocodeAsync(address);
-      if (results.length > 0) {
-        const { latitude, longitude } = results[0];
-        
-        // Save coordinates to secure storage
-        await SecureStore.setItemAsync(
-          STORAGE_KEYS.USER_COORDS, 
-          JSON.stringify({
-            latitude,
-            longitude
-          })
-        );
-        
-        return { latitude, longitude };
+      const result = await Location.reverseGeocodeAsync(coords);
+
+      if (result && result.length > 0) {
+        const locationData = result[0];
+        return await LocationService.formatAndSaveAddress(locationData);
       }
+
       return null;
     } catch (error) {
-      console.error('Error geocoding address:', error);
+      console.error('Error getting address from coordinates:', error);
       return null;
     }
   }

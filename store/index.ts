@@ -1,9 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
 import pharmacyReducer from './slices/pharmacySlice';
+import localStorageReducer from './slices/localStorageSlice';
 
 export const store = configureStore({
   reducer: {
     pharmacy: pharmacyReducer,
+    localStorage: localStorageReducer,
     // Add other reducers here as needed
   },
 });
