@@ -228,32 +228,39 @@ export default function HomeScreen() {
   };
 
   // Render pharmacy list item
-  const renderPharmacyItem = (pharmacy: Pharmacy) => (
-    <View key={pharmacy.Adi + pharmacy.Adres} style={styles.pharmacyItem}>
-      <Text style={styles.pharmacyName}>{pharmacy.Adi}</Text>
-      <Text style={styles.pharmacyDistance}>
-        {formatDistance(pharmacy.distanceInMeters)}
-      </Text>
-      <Text style={styles.pharmacyAddress}>{pharmacy.Adres}</Text>
-      <Text style={styles.pharmacyRegion}>{pharmacy.Bolge} {pharmacy.BolgeAciklama ? `- ${pharmacy.BolgeAciklama}` : ''}</Text>
+  const renderPharmacyItem = (pharmacy: Pharmacy, index: number) => {
+    // Create a unique key using multiple properties and index as fallback
+    const uniqueKey = pharmacy.EczaneId && pharmacy.EczaneId !== -1
+      ? `pharmacy-${pharmacy.EczaneId}`
+      : `pharmacy-${pharmacy.Adi}-${pharmacy.LokasyonX}-${pharmacy.LokasyonY}-${index}`;
 
-      <View style={styles.pharmacyActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => callPharmacy(pharmacy.Telefon)}
-        >
-          <Text style={styles.actionButtonText}>Call</Text>
-        </TouchableOpacity>
+    return (
+      <View key={uniqueKey} style={styles.pharmacyItem}>
+        <Text style={styles.pharmacyName}>{pharmacy.Adi}</Text>
+        <Text style={styles.pharmacyDistance}>
+          {formatDistance(pharmacy.distanceInMeters)}
+        </Text>
+        <Text style={styles.pharmacyAddress}>{pharmacy.Adres}</Text>
+        <Text style={styles.pharmacyRegion}>{pharmacy.Bolge} {pharmacy.BolgeAciklama ? `- ${pharmacy.BolgeAciklama}` : ''}</Text>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => getDirections(pharmacy)}
-        >
-          <Text style={styles.actionButtonText}>Directions</Text>
-        </TouchableOpacity>
+        <View style={styles.pharmacyActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => callPharmacy(pharmacy.Telefon)}
+          >
+            <Text style={styles.actionButtonText}>Call</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => getDirections(pharmacy)}
+          >
+            <Text style={styles.actionButtonText}>Directions</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (location.isLoading) {
     return (

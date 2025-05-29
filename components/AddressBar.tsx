@@ -16,7 +16,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { LocationService } from '../services/LocationService';
+import { LocationService } from '@/services/LocationService';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { createThemedStyles } from '@/theme/themeUtils';
 import { searchLocations } from '@/data/turkishLocations';

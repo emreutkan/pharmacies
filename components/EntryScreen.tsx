@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, Image, Animated, ActivityIndicator } from 'react-native';
 import { LocationService } from '@/services/LocationService';
+import { PharmacyService } from '@/services/PharmacyService';
 
 interface EntryScreenProps {
   onEntryComplete: () => void;
@@ -9,45 +10,77 @@ interface EntryScreenProps {
 export const EntryScreen: React.FC<EntryScreenProps> = ({ onEntryComplete }) => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [loadingText, setLoadingText] = useState('Initializing...');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Start fade-in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 1000,
+      duration: 500, // Reduced from 1000ms to 500ms for faster startup
       useNativeDriver: true,
     }).start();
 
     // Initialize app data and check permissions
     const initializeApp = async () => {
-      // Wait for animation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       try {
-        // Check if we have stored location data
-        setLoadingText('Checking location data...');
-        const savedCoords = await LocationService.getSavedCoordinates();
+        // Check if we have location data and fetch pharmacy data in parallel
+        setLoadingText('Loading data...');
 
-        // Wait a bit to show the checking message
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Create an array of promises for tasks that need to be completed
+        const tasks = [];
 
-        if (savedCoords) {
-          setLoadingText('Location data found!');
+        // Task 1: Check saved coordinates
+        const coordsPromise = LocationService.getSavedCoordinates()
+          .catch(err => {
+            console.error('Error checking saved coordinates:', err);
+            return null; // Return null on error to continue execution
+          });
+        tasks.push(coordsPromise);
+
+        // Task 2: Pre-fetch pharmacy data
+        const pharmaciesPromise = PharmacyService.getAllPharmacies()
+          .catch(err => {
+            console.error('Error pre-fetching pharmacies:', err);
+            return null; // Return null on error to continue execution
+          });
+        tasks.push(pharmaciesPromise);
+
+        // Wait for both tasks to complete
+        const [savedCoords, pharmacies] = await Promise.all(tasks);
+
+        // If we have location data and pharmacies, we're good to go
+        if (savedCoords && pharmacies) {
+          setLoadingText('Data loaded successfully!');
+          // Brief pause to show success message
+          setTimeout(onEntryComplete, 300);
+        } else if (savedCoords) {
+          setLoadingText('Location found, loading pharmacies...');
+          // Try to fetch pharmacies again if it failed
+          try {
+            await PharmacyService.getAllPharmacies();
+            setLoadingText('Ready!');
+            setTimeout(onEntryComplete, 300);
+          } catch {
+            // Proceed even on error
+            setLoadingText('Ready to find pharmacies!');
+            setTimeout(onEntryComplete, 300);
+          }
         } else {
-          setLoadingText('Ready to find pharmacies!');
+          // No saved location, but we can still proceed
+          setLoadingText('Ready to start!');
+          setTimeout(onEntryComplete, 300);
         }
-
-        // Wait a moment then notify parent that entry is complete
-        await new Promise(resolve => setTimeout(resolve, 800));
-        onEntryComplete();
       } catch (error) {
         console.error('Error during app initialization:', error);
-        setLoadingText('Ready to start');
         // Continue to main app even on error
-        setTimeout(onEntryComplete, 1000);
+        setLoadingText('Ready to start');
+        setTimeout(onEntryComplete, 300);
+      } finally {
+        setIsLoading(false);
       }
     };
 
+    // Immediately start initializing - no artificial delays
     initializeApp();
   }, [fadeAnim, onEntryComplete]);
 
@@ -61,7 +94,9 @@ export const EntryScreen: React.FC<EntryScreenProps> = ({ onEntryComplete }) => 
         />
         <Text style={styles.title}>Pharmacy Finder</Text>
         <Text style={styles.subtitle}>Find pharmacies in Izmir, Turkey</Text>
-        <ActivityIndicator size="large" color="#0a7ea4" style={styles.loader} />
+        {isLoading && (
+          <ActivityIndicator size="large" color="#0a7ea4" style={styles.loader} />
+        )}
         <Text style={styles.loadingText}>{loadingText}</Text>
       </View>
     </Animated.View>
@@ -101,6 +136,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: '#333',
   },
 });

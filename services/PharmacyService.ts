@@ -35,169 +35,74 @@ const deg2rad = (deg: number): number => {
   return deg * (Math.PI / 180);
 };
 
-// Mock pharmacy data based on the provided example
-const MOCK_PHARMACIES: Pharmacy[] = [
-  {
-    "Tarih": "2025-05-28T08:00:00",
-    "LokasyonY": "27.192230",
-    "LokasyonX": "38.428350",
-    "BolgeAciklama": "24:00DEN SONRA- ÇAMDİBİ",
-    "Adi": "YENİ TUNCAY ECZANESİ",
-    "Telefon": "02324356177",
-    "Adres": "TUNA MAH. FAZIL PAŞA CAD. NO:35/A KOŞUKAVAK",
-    "BolgeId": 4,
-    "Bolge": "ALTINDAĞ"
-  },
-  {
-    "Tarih": "2025-05-28T08:00:00",
-    "LokasyonY": "27.057512",
-    "LokasyonX": "38.394966",
-    "BolgeAciklama": "",
-    "Adi": "LOTUS ECZANESİ",
-    "Telefon": "02322792666",
-    "Adres": "ONUR MAH. MİTHATPAŞA CAD. NO:39/A",
-    "BolgeId": 6,
-    "Bolge": "BALÇOVA"
-  },
-  {
-    "Tarih": "2025-05-28T08:00:00",
-    "LokasyonY": "27.105400",
-    "LokasyonX": "38.396900",
-    "BolgeAciklama": "",
-    "Adi": "KONYA ECZANESİ",
-    "Telefon": "02322310457",
-    "Adres": "177/5 SOK. NO:23/B BASINSITESI",
-    "BolgeId": 7,
-    "Bolge": "BASIN SİTESİ"
-  },
-  {
-    "Tarih": "2025-05-28T08:00:00",
-    "LokasyonY": "27.166658",
-    "LokasyonX": "38.470375",
-    "BolgeAciklama": "",
-    "Adi": "GÜNDOĞDU ECZANESİ",
-    "Telefon": "02323717739",
-    "Adres": "ALPASLAN MAH. 1620/15 SOK. NO:11/A",
-    "BolgeId": 9,
-    "Bolge": "BAYRAKLI"
-  },
-  {
-    "Tarih": "2025-05-28T08:00:00",
-    "LokasyonY": "27.216400",
-    "LokasyonX": "38.465200",
-    "BolgeAciklama": "",
-    "Adi": "BENLIOGLU ECZANESİ",
-    "Telefon": "02323424557",
-    "Adres": "ERGENE MAH. MUSTAFA KEMAL CAD. NO:26/D",
-    "BolgeId": 10,
-    "Bolge": "BORNOVA 1"
-  },
-  {
-    "Tarih": "2025-05-28T08:00:00",
-    "LokasyonY": "27.208600",
-    "LokasyonX": "38.457500",
-    "BolgeAciklama": "",
-    "Adi": "BORNOVA EGE ECZANESİ",
-    "Telefon": "02323435516",
-    "Adres": "KAZIMDIRIK MAH. ÜNIVERSITE CAD. NO:32/B",
-    "BolgeId": 11,
-    "Bolge": "BORNOVA 2"
-  },
-  {
-    "Tarih": "2025-05-28T08:00:00",
-    "LokasyonY": "27.196900",
-    "LokasyonX": "38.456600",
-    "BolgeAciklama": "",
-    "Adi": "YENI ISIL ECZANESİ",
-    "Telefon": "02323472517",
-    "Adres": "MANSUROGLU MAH. 266 SOKAK NO:10/C BAYRAKLI",
-    "BolgeId": 12,
-    "Bolge": "BORNOVA 3"
-  },
-  {
-    "Tarih": "2025-05-28T08:00:00",
-    "LokasyonY": "27.127800",
-    "LokasyonX": "38.398200",
-    "BolgeAciklama": "",
-    "Adi": "ÖZHAYAT ECZANESİ",
-    "Telefon": "02322503988",
-    "Adres": "ESKIIZMIR CAD. NO:61/F ",
-    "BolgeId": 14,
-    "Bolge": "BOZYAKA"
-  },
-  {
-    "Tarih": "2025-05-28T08:00:00",
-    "LokasyonY": "27.166300",
-    "LokasyonX": "38.385200",
-    "BolgeAciklama": "",
-    "Adi": "ERCİYAS ECZANESİ",
-    "Telefon": "02324261577",
-    "Adres": "ÖZMEN CAD. NO:126/A",
-    "BolgeId": 15,
-    "Bolge": "BUCA 1"
-  },
-  {
-    "Tarih": "2025-05-28T08:00:00",
-    "LokasyonY": "27.193653",
-    "LokasyonX": "38.437074",
-    "BolgeAciklama": "",
-    "Adi": "GÜNGÖR ECZANESİ",
-    "Telefon": "02324612616",
-    "Adres": "BARBAROS MAH. 5234 SOK. NO:22/A",
-    "BolgeId": 16,
-    "Bolge": "ÇAMDİBİ"
-  }
-];
-
-// Pharmacy service for API calls
+// PharmacyService to fetch and manage pharmacy data
 export const PharmacyService = {
-  // Fetch pharmacy data
-  getPharmacies: async (): Promise<Pharmacy[]> => {
+  // API endpoint for pharmacies
+  API_URL: 'https://openapi.izmir.bel.tr/api/ibb/eczaneler',
+
+  // Cache for pharmacy data
+  cachedPharmacies: null as Pharmacy[] | null,
+  lastFetchTime: 0,
+
+  // Get all pharmacies from API
+  getAllPharmacies: async (): Promise<Pharmacy[]> => {
     try {
-      // Since the API is returning HTML instead of JSON, use mock data for now
-      return MOCK_PHARMACIES;
+      // Check if we have cached data that's less than 1 hour old
+      const now = Date.now();
+      if (PharmacyService.cachedPharmacies &&
+          (now - PharmacyService.lastFetchTime) < 3600000) { // 1 hour in milliseconds
+        return PharmacyService.cachedPharmacies;
+      }
+
+      // Fetch pharmacies from API
+      const response = await fetch(PharmacyService.API_URL);
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const pharmacies = await response.json() as Pharmacy[];
+
+      // Update cache
+      PharmacyService.cachedPharmacies = pharmacies;
+      PharmacyService.lastFetchTime = now;
+
+      return pharmacies;
     } catch (error) {
-      console.error('Error fetching pharmacy data:', error);
+      console.error('Error fetching pharmacies:', error);
+      // If API fetch fails and we have cached data, return that
+      if (PharmacyService.cachedPharmacies) {
+        return PharmacyService.cachedPharmacies;
+      }
+      // Otherwise throw the error
       throw error;
     }
   },
 
-  // Get pharmacies sorted by distance from user location
-  getNearbyPharmacies: async (
-    latitude: number,
-    longitude: number
-  ): Promise<Pharmacy[]> => {
+  // Get pharmacies ordered by distance from user location
+  getNearbyPharmacies: async (userLat: number, userLon: number): Promise<Pharmacy[]> => {
     try {
-      const pharmacies = await PharmacyService.getPharmacies();
+      const pharmacies = await PharmacyService.getAllPharmacies();
 
-      // Calculate distance for each pharmacy and add it to the object
+      // Add distance to each pharmacy
       const pharmaciesWithDistance = pharmacies.map(pharmacy => {
-        const pharmLat = parseFloat(pharmacy.LokasyonX);
-        const pharmLng = parseFloat(pharmacy.LokasyonY);
+        const lat = parseFloat(pharmacy.LokasyonX);
+        const lon = parseFloat(pharmacy.LokasyonY);
 
-        // Calculate distance between user and pharmacy
-        const distanceInKm = calculateDistance(
-          latitude,
-          longitude,
-          pharmLat,
-          pharmLng
-        );
+        // Calculate distance in km
+        const distance = calculateDistance(userLat, userLon, lat, lon);
 
-        // Convert to meters
-        const distanceInMeters = distanceInKm * 1000;
-
+        // Convert to meters for better display
         return {
           ...pharmacy,
-          distanceInMeters
+          distanceInMeters: distance * 1000
         };
       });
 
-      // Sort pharmacies by distance
-      return pharmaciesWithDistance.sort((a, b) => {
-        if (!a.distanceInMeters) return 1;
-        if (!b.distanceInMeters) return -1;
-        return a.distanceInMeters - b.distanceInMeters;
-      });
+      // Sort by distance
+      return pharmaciesWithDistance.sort((a, b) =>
+        (a.distanceInMeters || 0) - (b.distanceInMeters || 0)
+      );
     } catch (error) {
       console.error('Error getting nearby pharmacies:', error);
       throw error;
