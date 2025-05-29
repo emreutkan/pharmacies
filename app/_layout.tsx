@@ -7,13 +7,13 @@ import { AppState, AppStateStatus } from 'react-native';
 import { EntryScreen } from '@/components/EntryScreen';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { ThemeProvider, useAppTheme } from '@/theme/ThemeProvider';
+import { ThemeProvider } from '@/theme/ThemeProvider';
+import { AppTheme } from '@/theme/ThemeProvider';
+import { Provider } from 'react-redux';
+import { store } from '@/store';
 
-// Wrap navigation with our theme
-function ThemedApp() {
-  // Get theme from our custom provider
-  const { theme } = useAppTheme();
-
+// Create a component that receives the theme directly as a prop
+function ThemedNavigationApp({ theme }: { theme: AppTheme }) {
   // Map our theme to React Navigation theme
   const navigationTheme = {
     ...(theme.isDark ? DarkTheme : DefaultTheme),
@@ -41,6 +41,17 @@ function ThemedApp() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  return (
+    <Provider store={store}>
+      <ThemeProvider initialThemeType="system">
+        {({ theme }) => <AppContent theme={theme} />}
+      </ThemeProvider>
+    </Provider>
+  );
+}
+
+function AppContent({ theme }: { theme: AppTheme }) {
   const [showEntryScreen, setShowEntryScreen] = useState(true);
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 
@@ -76,9 +87,5 @@ export default function RootLayout() {
     return <EntryScreen onEntryComplete={handleEntryComplete} />;
   }
 
-  return (
-    <ThemeProvider initialThemeType="system">
-      <ThemedApp />
-    </ThemeProvider>
-  );
+  return <ThemedNavigationApp theme={theme} />;
 }

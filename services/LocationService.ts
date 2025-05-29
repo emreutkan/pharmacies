@@ -68,6 +68,20 @@ export const LocationService = {
     }
   },
 
+  // Save coordinates to secure storage (replacing any previous coordinates)
+  saveCoordinates: async (coordinates: {latitude: number, longitude: number}) => {
+    try {
+      await SecureStore.setItemAsync(
+        STORAGE_KEYS.USER_COORDS,
+        JSON.stringify(coordinates)
+      );
+      return true;
+    } catch (error) {
+      console.error('Error saving coordinates:', error);
+      return false;
+    }
+  },
+
   // Get saved coordinates from secure storage
   getSavedCoordinates: async (): Promise<{latitude: number, longitude: number} | null> => {
     try {

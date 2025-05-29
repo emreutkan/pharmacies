@@ -154,7 +154,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // Theme provider props
 interface ThemeProviderProps {
-  children: ReactNode;
+  children: ReactNode | ((context: ThemeContextType) => ReactNode);
   initialThemeType?: ThemeType;
 }
 
@@ -200,9 +200,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     return null;
   }
 
+  const contextValue = { theme, themeType, setThemeType, fontsLoaded };
+
   return (
-    <ThemeContext.Provider value={{ theme, themeType, setThemeType, fontsLoaded }}>
-      {children}
+    <ThemeContext.Provider value={contextValue}>
+      {typeof children === 'function' ? children(contextValue) : children}
     </ThemeContext.Provider>
   );
 };

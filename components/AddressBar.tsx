@@ -28,7 +28,7 @@ interface AddressBarProps {
     latitude: number;
     longitude: number;
   } | null;
-  onChangeAddressPress: () => void;
+  onChangeAddressPress?: () => void; // Made optional
   onAddressSelected: (address: string, coordinates: { latitude: number; longitude: number }) => void;
 }
 
@@ -141,6 +141,10 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
   const handleAddressPress = () => {
     setModalVisible(true);
+    // If onChangeAddressPress is provided, call it
+    if (onChangeAddressPress) {
+      onChangeAddressPress();
+    }
   };
 
   const handleMapDragStart = () => {
@@ -185,7 +189,9 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
           setSelectedAddress(formattedAddress);
 
+          // Save both the address and coordinates to localStorage
           await LocationService.saveUserAddress(formattedAddress);
+          await LocationService.saveCoordinates(selectedCoordinates);
 
           onAddressSelected(formattedAddress, selectedCoordinates);
         }
