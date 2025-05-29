@@ -4,10 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="14947396-c0b1-46a8-a547-9cdcce991e87" name="Changes" comment="feat: implement themed navigation and enhance AddressBar with search functionality">
+    <list default="true" id="14947396-c0b1-46a8-a547-9cdcce991e87" name="Changes" comment="feat: enhance EntryScreen initialization and improve pharmacy data handling">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(tabs)/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/AddressInput.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/AddressInput.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/EntryScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/EntryScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ThemedText.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ThemedText.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ThemedView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ThemedView.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/PharmacyService.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/PharmacyService.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -76,7 +78,7 @@
       <option name="presentableId" value="Default" />
       <updated>1746489745206</updated>
       <workItem from="1746489746439" duration="1837000" />
-      <workItem from="1748482019627" duration="11826000" />
+      <workItem from="1748482019627" duration="13973000" />
     </task>
     <task id="LOCAL-00001" summary="initialize project structure with essential files and configurations">
       <option name="closed" value="true" />
@@ -110,7 +112,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748539107175</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="feat: enhance EntryScreen initialization and improve pharmacy data handling">
+      <option name="closed" value="true" />
+      <created>1748546827991</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1748546827991</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -121,6 +131,7 @@
     <MESSAGE value="refactor: update NotFound and Explore screens with improved layout and styling; integrate location services for pharmacy search" />
     <MESSAGE value="feat: add AddressBar, AddressInput, and EntryScreen components; implement location services for pharmacy search and address management" />
     <MESSAGE value="feat: implement themed navigation and enhance AddressBar with search functionality" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: implement themed navigation and enhance AddressBar with search functionality" />
+    <MESSAGE value="feat: enhance EntryScreen initialization and improve pharmacy data handling" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: enhance EntryScreen initialization and improve pharmacy data handling" />
   </component>
 </project>
