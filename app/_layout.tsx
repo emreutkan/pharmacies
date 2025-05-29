@@ -1,20 +1,48 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import React, { useState, useEffect, useCallback } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
+import { EntryScreen } from '@/components/EntryScreen';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  const [showEntryScreen, setShowEntryScreen] = useState(true);
+  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 
-  if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
+  // Handle app state changes (background, active, etc.)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      // When the app comes back from background to active
+      if (
+        appState.match(/inactive|background/) &&
+        nextAppState === 'active' &&
+        !showEntryScreen
+      ) {
+        // Only show entry screen if app was in background for a while (10+ seconds)
+        setShowEntryScreen(true);
+      }
+
+      setAppState(nextAppState);
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.remove();
+    };
+  }, [appState, showEntryScreen]);
+
+  // Handler for when entry screen completes its animation and initialization
+  const handleEntryComplete = useCallback(() => {
+    setShowEntryScreen(false);
+  }, []);
+
+  // Show entry screen on first launch or when returning from background
+  if (showEntryScreen) {
+    return <EntryScreen onEntryComplete={handleEntryComplete} />;
   }
 
   return (
