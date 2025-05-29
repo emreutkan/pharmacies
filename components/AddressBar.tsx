@@ -1,9 +1,25 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Platform, ActivityIndicator, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  Platform,
+  ActivityIndicator,
+  Animated,
+  TextInput,
+  FlatList,
+  Keyboard,
+  TouchableWithoutFeedback
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { LocationService } from '../services/LocationService';
+import { useAppTheme } from '@/theme/ThemeProvider';
+import { createThemedStyles } from '@/theme/themeUtils';
+import { searchLocations } from '@/data/turkishLocations';
 
 interface AddressBarProps {
   address: string;
@@ -13,7 +29,7 @@ interface AddressBarProps {
     longitude: number;
   } | null;
   onChangeAddressPress: () => void;
-  onAddressSelected: (address: string, coordinates: {latitude: number, longitude: number}) => void;
+  onAddressSelected: (address: string, coordinates: { latitude: number; longitude: number }) => void;
 }
 
 export const AddressBar: React.FC<AddressBarProps> = ({
@@ -23,6 +39,9 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   onChangeAddressPress,
   onAddressSelected
 }) => {
+  const { theme } = useAppTheme();
+  const styles = getStyles(theme);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [mapRegion, setMapRegion] = useState({
     latitude: coordinates?.latitude || 38.4192,
@@ -40,13 +59,17 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     country?: string;
   }>({});
   const [isDragging, setIsDragging] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showResults, setShowResults] = useState(false);
+
   const mapRef = useRef<MapView>(null);
+  const searchInputRef = useRef<TextInput>(null);
   const buttonAnimation = useRef(new Animated.Value(100)).current;
   const markerFloatAnimation = useRef(new Animated.Value(0)).current;
   const markerScaleAnimation = useRef(new Animated.Value(1)).current;
   const locationDetailsAnimation = useRef(new Animated.Value(70)).current;
 
-  // Start floating animation for marker
   useEffect(() => {
     if (modalVisible) {
       Animated.loop(
@@ -64,7 +87,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         ])
       ).start();
 
-      // Initial scale animation when opened
       Animated.sequence([
         Animated.timing(markerScaleAnimation, {
           toValue: 1.3,
@@ -78,13 +100,11 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         }),
       ]).start();
     } else {
-      // Reset animations when modal is closed
       markerFloatAnimation.setValue(0);
       markerScaleAnimation.setValue(1);
     }
   }, [modalVisible, markerFloatAnimation, markerScaleAnimation]);
 
-  // Update map region when coordinates change
   useEffect(() => {
     if (coordinates) {
       setMapRegion(prev => ({
@@ -96,7 +116,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     }
   }, [coordinates]);
 
-  // Animate the confirm button to slide up when modal is visible
   useEffect(() => {
     if (modalVisible) {
       Animated.timing(buttonAnimation, {
@@ -109,22 +128,30 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     }
   }, [modalVisible, buttonAnimation]);
 
+  useEffect(() => {
+    if (searchQuery.length >= 2) {
+      const results = searchLocations(searchQuery);
+      setSearchResults(results);
+      setShowResults(results.length > 0);
+    } else {
+      setSearchResults([]);
+      setShowResults(false);
+    }
+  }, [searchQuery]);
+
   const handleAddressPress = () => {
     setModalVisible(true);
   };
 
-  // When dragging starts, show bounce animation and hide location details
   const handleMapDragStart = () => {
     setIsDragging(true);
 
-    // Hide location details with animation
     Animated.timing(locationDetailsAnimation, {
       toValue: 70,
       duration: 200,
       useNativeDriver: true
     }).start();
 
-    // Bounce animation for marker
     Animated.sequence([
       Animated.timing(markerScaleAnimation, {
         toValue: 1.2,
@@ -143,7 +170,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     if (selectedCoordinates) {
       setIsLoading(true);
       try {
-        // Reverse geocode to get address from coordinates
         const result = await Location.reverseGeocodeAsync({
           latitude: selectedCoordinates.latitude,
           longitude: selectedCoordinates.longitude
@@ -159,10 +185,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
           setSelectedAddress(formattedAddress);
 
-          // Save the new address and coordinates
           await LocationService.saveUserAddress(formattedAddress);
 
-          // Call the callback to update parent component
           onAddressSelected(formattedAddress, selectedCoordinates);
         }
       } catch (error) {
@@ -175,14 +199,12 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   };
 
   const handleMapRegionChange = (region: any) => {
-    // Start dragging if not already dragging
     if (!isDragging) {
       handleMapDragStart();
     }
   };
 
   const handleMapRegionChangeComplete = async (region: any) => {
-    // Update state only when user stops dragging for smooth experience
     setMapRegion(region);
     setIsDragging(false);
 
@@ -193,7 +215,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
     setSelectedCoordinates(newCoordinates);
 
-    // Get location details when scrolling stops
     setIsLoading(true);
     try {
       const result = await Location.reverseGeocodeAsync(newCoordinates);
@@ -207,14 +228,12 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           country: location.country
         });
 
-        // Show location details with animation
         Animated.timing(locationDetailsAnimation, {
           toValue: 0,
           duration: 300,
           useNativeDriver: true
         }).start();
 
-        // Add bounce effect to marker when location is found
         Animated.sequence([
           Animated.timing(markerScaleAnimation, {
             toValue: 1.4,
@@ -253,9 +272,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
       if (userLocation && mapRef.current) {
         setSelectedCoordinates(userLocation);
-        handleMapDragStart(); // Trigger the animation
+        handleMapDragStart();
 
-        // Animate map to user location
         mapRef.current.animateToRegion({
           latitude: userLocation.latitude,
           longitude: userLocation.longitude,
@@ -274,6 +292,57 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     setModalVisible(false);
   };
 
+  const handleSearchItemPress = (item: any) => {
+    setMapRegion({
+      latitude: item.coordinates.latitude,
+      longitude: item.coordinates.longitude,
+      latitudeDelta: 0.005,
+      longitudeDelta: 0.005,
+    });
+
+    setSelectedCoordinates(item.coordinates);
+
+    const locationName = item.district
+      ? `${item.district}, ${item.city}`
+      : item.city;
+
+    setLocationDetails({
+      district: item.district,
+      city: item.city,
+      country: 'Türkiye'
+    });
+
+    Animated.timing(locationDetailsAnimation, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true
+    }).start();
+
+    Animated.sequence([
+      Animated.timing(markerScaleAnimation, {
+        toValue: 1.4,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(markerScaleAnimation, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setSearchQuery('');
+    setShowResults(false);
+    Keyboard.dismiss();
+  };
+
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+    if (searchResults.length === 0) {
+      setShowResults(false);
+    }
+  };
+
   return (
     <>
       <TouchableOpacity
@@ -282,7 +351,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         activeOpacity={0.7}
       >
         <View style={styles.iconContainer}>
-          <MaterialIcons name="location-on" size={24} color="#0a7ea4" />
+          <MaterialIcons name="location-on" size={24} color={theme.colors.primary} />
         </View>
         <View style={styles.textContainer}>
           <Text style={styles.addressText} numberOfLines={1}>
@@ -290,7 +359,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           </Text>
           <Text style={styles.provinceText}>{province}</Text>
         </View>
-        <MaterialIcons name="keyboard-arrow-right" size={24} color="#999" />
+        <MaterialIcons name="keyboard-arrow-right" size={24} color={theme.colors.text.tertiary} />
       </TouchableOpacity>
 
       <Modal
@@ -299,154 +368,270 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         visible={modalVisible}
         onRequestClose={handleCloseModal}
       >
-        <View style={styles.fullScreenContainer}>
-          <MapView
-            ref={mapRef}
-            style={styles.fullScreenMap}
-            region={mapRegion}
-            onRegionChange={handleMapRegionChange}
-            onRegionChangeComplete={handleMapRegionChangeComplete}
-            showsUserLocation={true}
-            showsMyLocationButton={false}
-            rotateEnabled={true}
-            pitchEnabled={true}
-            moveOnMarkerPress={false}
-            loadingEnabled={true}
-          />
+        <TouchableWithoutFeedback onPress={dismissKeyboard}>
+          <View style={styles.fullScreenContainer}>
+            <MapView
+              ref={mapRef}
+              style={styles.fullScreenMap}
+              region={mapRegion}
+              onRegionChange={handleMapRegionChange}
+              onRegionChangeComplete={handleMapRegionChangeComplete}
+              showsUserLocation={true}
+              showsMyLocationButton={false}
+              rotateEnabled={true}
+              pitchEnabled={true}
+              moveOnMarkerPress={false}
+              loadingEnabled={true}
+            />
 
-          {/* Back button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleCloseModal}
-          >
-            <MaterialIcons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
+            <View style={styles.headerContainer}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={handleCloseModal}
+              >
+                <MaterialIcons name="arrow-back" size={24} color={theme.colors.text.primary} />
+              </TouchableOpacity>
 
-          {/* Animated floating marker */}
-          <Animated.View
-            style={[
-              styles.markerFixed,
-              {
-                transform: [
-                  { translateY: markerFloatAnimation },
-                  { scale: markerScaleAnimation }
-                ]
-              }
-            ]}
-          >
-            <View style={styles.markerShadow} />
-            <MaterialIcons name="location-pin" size={50} color="#0a7ea4" />
-          </Animated.View>
-
-          {/* Location details card (street, district, city, country) */}
-          <Animated.View
-            style={[
-              styles.locationDetailsCard,
-              { transform: [{ translateY: locationDetailsAnimation }] }
-            ]}
-          >
-            {locationDetails.street && (
-              <Text style={styles.locationStreet}>{locationDetails.street}</Text>
-            )}
-            <Text style={styles.locationRegion}>
-              {[locationDetails.district, locationDetails.city, locationDetails.country]
-                .filter(Boolean)
-                .join(', ')}
-            </Text>
-          </Animated.View>
-
-          {/* My Location Button */}
-          <TouchableOpacity
-            style={styles.myLocationButton}
-            onPress={handleMyLocationPress}
-            disabled={isLoading}
-          >
-            <MaterialIcons name="my-location" size={24} color="#0a7ea4" />
-          </TouchableOpacity>
-
-          {/* Animated Confirm Button */}
-          <Animated.View
-            style={[
-              styles.bottomSheet,
-              { transform: [{ translateY: buttonAnimation }] }
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleConfirmLocation}
-              disabled={isLoading || !selectedCoordinates}
-            >
-              <Text style={styles.confirmButtonText}>
-                {isLoading ? 'Confirming...' : 'Confirm This Location'}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-          {isLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#0a7ea4" />
+              <View style={styles.searchContainer}>
+                <TextInput
+                  ref={searchInputRef}
+                  style={styles.searchInput}
+                  placeholder="Search city or district..."
+                  placeholderTextColor={theme.colors.text.tertiary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  onFocus={() => setShowResults(true)}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={() => {
+                      setSearchQuery('');
+                      setShowResults(false);
+                    }}
+                  >
+                    <MaterialIcons name="close" size={20} color={theme.colors.text.tertiary} />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-          )}
-        </View>
+
+            {showResults && (
+              <View style={styles.searchResultsContainer}>
+                <FlatList
+                  data={searchResults}
+                  keyboardShouldPersistTaps="handled"
+                  keyExtractor={(item, index) => `location-${index}`}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.searchResultItem}
+                      onPress={() => handleSearchItemPress(item)}
+                    >
+                      <MaterialIcons name="location-on" size={20} color={theme.colors.primary} />
+                      <View style={styles.searchResultTextContainer}>
+                        <Text style={styles.searchResultText}>
+                          {item.district ? `${item.district}, ${item.city}` : item.city}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  ListEmptyComponent={
+                    searchQuery.length >= 2 ? (
+                      <Text style={styles.noResultsText}>No locations found</Text>
+                    ) : null
+                  }
+                />
+              </View>
+            )}
+
+            <Animated.View
+              style={[
+                styles.markerFixed,
+                {
+                  transform: [
+                    { translateY: markerFloatAnimation },
+                    { scale: markerScaleAnimation }
+                  ]
+                }
+              ]}
+            >
+              <View style={styles.markerShadow} />
+              <MaterialIcons name="location-pin" size={50} color={theme.colors.primary} />
+            </Animated.View>
+
+            <Animated.View
+              style={[
+                styles.locationDetailsCard,
+                { transform: [{ translateY: locationDetailsAnimation }] }
+              ]}
+            >
+              {locationDetails.street && (
+                <Text style={styles.locationStreet}>{locationDetails.street}</Text>
+              )}
+              <Text style={styles.locationRegion}>
+                {[locationDetails.district, locationDetails.city, locationDetails.country]
+                  .filter(Boolean)
+                  .join(', ')}
+              </Text>
+            </Animated.View>
+
+            <TouchableOpacity
+              style={styles.myLocationButton}
+              onPress={handleMyLocationPress}
+              disabled={isLoading}
+            >
+              <MaterialIcons name="my-location" size={24} color={theme.colors.primary} />
+            </TouchableOpacity>
+
+            <Animated.View
+              style={[
+                styles.bottomSheet,
+                { transform: [{ translateY: buttonAnimation }] }
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleConfirmLocation}
+                disabled={isLoading || !selectedCoordinates}
+              >
+                <Text style={styles.confirmButtonText}>
+                  {isLoading ? 'Confirming...' : 'Confirm This Location'}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {isLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+              </View>
+            )}
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </>
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = createThemedStyles((theme) => ({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 8,
-    shadowColor: '#000',
+    backgroundColor: theme.colors.background,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
   iconContainer: {
-    marginRight: 12,
+    marginRight: theme.spacing.sm,
   },
   textContainer: {
     flex: 1,
   },
   addressText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    ...theme.typography.body,
+    color: theme.colors.text.primary,
   },
   provinceText: {
-    fontSize: 14,
-    color: '#666',
+    ...theme.typography.caption,
+    color: theme.colors.text.secondary,
   },
   fullScreenContainer: {
     flex: 1,
     position: 'relative',
+    backgroundColor: theme.colors.background,
   },
   fullScreenMap: {
     ...StyleSheet.absoluteFillObject,
   },
-  backButton: {
+  headerContainer: {
     position: 'absolute',
-    top: 50,
-    left: 16,
-    backgroundColor: 'white',
-    borderRadius: 20,
+    top: 45,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.sm,
+    zIndex: 10,
+  },
+  backButton: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.circle,
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    zIndex: 10,
+    marginRight: theme.spacing.sm,
+  },
+  searchContainer: {
+    flex: 1,
+    height: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: theme.spacing.md,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    ...theme.typography.body,
+    color: theme.colors.text.primary,
+  },
+  clearButton: {
+    padding: theme.spacing.xs,
+  },
+  searchResultsContainer: {
+    position: 'absolute',
+    top: 95,
+    left: theme.spacing.md,
+    right: theme.spacing.md,
+    maxHeight: 200,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.md,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 20,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.divider,
+  },
+  searchResultTextContainer: {
+    marginLeft: theme.spacing.sm,
+    flex: 1,
+  },
+  searchResultText: {
+    ...theme.typography.body,
+    color: theme.colors.text.primary,
+  },
+  noResultsText: {
+    ...theme.typography.body,
+    color: theme.colors.text.secondary,
+    padding: theme.spacing.md,
+    textAlign: 'center',
   },
   markerFixed: {
     position: 'absolute',
@@ -460,10 +645,10 @@ const styles = StyleSheet.create({
   markerShadow: {
     position: 'absolute',
     bottom: -5,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: theme.colors.shadow,
     width: 20,
     height: 6,
-    borderRadius: 10,
+    borderRadius: theme.radius.pill,
     zIndex: 1,
   },
   locationDetailsCard: {
@@ -472,10 +657,10 @@ const styles = StyleSheet.create({
     left: '10%',
     right: '10%',
     marginTop: 15,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 5,
@@ -484,28 +669,27 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   locationStreet: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    ...theme.typography.subtitle,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.xs,
     textAlign: 'center',
   },
   locationRegion: {
-    fontSize: 14,
-    color: '#666',
+    ...theme.typography.bodySmall,
+    color: theme.colors.text.secondary,
     textAlign: 'center',
   },
   myLocationButton: {
     position: 'absolute',
-    right: 16,
+    right: theme.spacing.md,
     bottom: 100,
-    backgroundColor: 'white',
-    borderRadius: 30,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.circle,
     width: 56,
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -517,12 +701,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'white',
-    padding: 20,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.lg,
     paddingBottom: 36,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
+    borderTopLeftRadius: theme.radius.lg,
+    borderTopRightRadius: theme.radius.lg,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
@@ -530,15 +714,14 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   confirmButton: {
-    backgroundColor: '#0a7ea4',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.md,
     alignItems: 'center',
   },
   confirmButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
+    ...theme.typography.button,
+    color: theme.colors.text.inverse,
   },
   loadingContainer: {
     position: 'absolute',
@@ -548,7 +731,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: theme.colors.overlay,
     zIndex: 10,
   },
-});
+}));

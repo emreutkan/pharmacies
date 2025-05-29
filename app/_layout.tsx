@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -7,6 +7,37 @@ import { AppState, AppStateStatus } from 'react-native';
 import { EntryScreen } from '@/components/EntryScreen';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { ThemeProvider, useAppTheme } from '@/theme/ThemeProvider';
+
+// Wrap navigation with our theme
+function ThemedApp() {
+  // Get theme from our custom provider
+  const { theme } = useAppTheme();
+
+  // Map our theme to React Navigation theme
+  const navigationTheme = {
+    ...(theme.isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(theme.isDark ? DarkTheme.colors : DefaultTheme.colors),
+      // Override with our theme colors
+      primary: theme.colors.primary,
+      background: theme.colors.background,
+      card: theme.colors.surface,
+      text: theme.colors.text.primary,
+      border: theme.colors.border,
+    },
+  };
+
+  return (
+    <NavigationThemeProvider value={navigationTheme}>
+      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </NavigationThemeProvider>
+  );
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -46,12 +77,8 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
+    <ThemeProvider initialThemeType="system">
+      <ThemedApp />
     </ThemeProvider>
   );
 }
