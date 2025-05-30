@@ -181,6 +181,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           const location = result[0];
           const region = location.city || location.region || 'Unknown';
           const district = location.district || '';
+          const city = location.city || '';
           const formattedAddress = district ? `${region}, ${district}` : region;
 
           setSelectedAddress(formattedAddress);

@@ -47,6 +47,7 @@ export default function HomeScreen() {
       permissionGranted: false, // Address was manually selected/confirmed
       isLoading: false,
     });
+    // Update with the simplified address format
     setUserAddress(address);
     await LocationService.saveCoordinates(coords);
     await checkRegionAndLoadPharmacies(coords); // Reload pharmacies for the new location

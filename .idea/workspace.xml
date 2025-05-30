@@ -4,13 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="14947396-c0b1-46a8-a547-9cdcce991e87" name="Changes" comment="feat: integrate Redux for state management and enhance theming across components">
+    <list default="true" id="14947396-c0b1-46a8-a547-9cdcce991e87" name="Changes" comment="feat: enhance AddressBar and ExploreScreen with improved address handling and local storage integration">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(tabs)/explore.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/explore.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(tabs)/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/index.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/AddressBar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/AddressBar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/LocationService.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/LocationService.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/store/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/store/index.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,7 +77,7 @@
       <workItem from="1746489746439" duration="1837000" />
       <workItem from="1748482019627" duration="17018000" />
       <workItem from="1748552136168" duration="1056000" />
-      <workItem from="1748547939535" duration="4912000" />
+      <workItem from="1748547939535" duration="6788000" />
     </task>
     <task id="LOCAL-00001" summary="initialize project structure with essential files and configurations">
       <option name="closed" value="true" />
@@ -138,7 +135,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748555905877</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="feat: enhance AddressBar and ExploreScreen with improved address handling and local storage integration">
+      <option name="closed" value="true" />
+      <created>1748558274304</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1748558274304</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -152,6 +157,7 @@
     <MESSAGE value="feat: enhance EntryScreen initialization and improve pharmacy data handling" />
     <MESSAGE value="refactor: update workspace configuration and task summaries for improved clarity" />
     <MESSAGE value="feat: integrate Redux for state management and enhance theming across components" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: integrate Redux for state management and enhance theming across components" />
+    <MESSAGE value="feat: enhance AddressBar and ExploreScreen with improved address handling and local storage integration" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: enhance AddressBar and ExploreScreen with improved address handling and local storage integration" />
   </component>
 </project>
